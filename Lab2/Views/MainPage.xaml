@@ -1,0 +1,171 @@
+<Page x:Class="Lab2.MainPage"
+      xmlns:conv="using:Lab2.Converters"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:Lab2"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:viewmodels="using:Lab2.ViewModels"
+      d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
+      mc:Ignorable="d"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Page.Resources>
+        <conv:MessageTypeToBrushBackgroundConverter x:Key="MessageTypeToBrushBackgroundConverter"/>
+        <conv:MessageTypeToBrushForegroundConverter x:Key="MessageTypeToBrushForegroundConverter"/>
+        <conv:MessageTypeToSymbolConverter x:Key="MessageTypeToSymbolConverter"/>
+
+        <!-- Styles -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefault}"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefault}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="Margin" Value="0,10,0,0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid x:Name="RootGrid">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="VisibilityStates">
+                <VisualState x:Name="KeyTextBoxVisible">
+                    <VisualState.Setters>
+                        <Setter Target="keyTextBox.Visibility" Value="Visible"/>
+                        <Setter Target="selectedOperationComboBoxColumn.Width" Value="*"/>
+                        <Setter Target="selectedOperationComboBox.Margin" Value="0,0,10,0"/>
+                        <Setter Target="keyTextBoxColumn.Width" Value="*"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="KeyTextBoxHidden">
+                    <VisualState.Setters>
+                        <Setter Target="keyTextBox.Visibility" Value="Collapsed"/>
+                        <Setter Target="selectedOperationComboBoxColumn.Width" Value="2*"/>
+                        <Setter Target="selectedOperationComboBox.Margin" Value="0,0,0,0"/>
+                        <Setter Target="keyTextBoxColumn.Width" Value="0"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Grid x:Name="MainGrid" Visibility="Visible">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Input Panel -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Ввод текста" Style="{StaticResource HeaderTextStyle}"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <TextBox Header="Текст для обработки"
+                                 PlaceholderText="Введите текст или используйте кнопку 'Вставить'"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </ScrollViewer>
+
+                    <Button Content="Вставить из буфера" Grid.Row="2" Command="{Binding PasteCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+
+                    <Grid Grid.Row="3" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition x:Name="selectedOperationComboBoxColumn" Width="*"/>
+                            <ColumnDefinition x:Name="keyTextBoxColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Header="Алфавит"
+                                  ItemsSource="{Binding Alphabets}"
+                                  DisplayMemberPath="UiName"
+                                  SelectedItem="{Binding SelectedAlphabet, Mode=TwoWay}"
+                                  Style="{StaticResource ComboBoxStyle}"
+                                  Grid.Column="0" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="selectedOperationComboBox" Header="Операция"
+                                  ItemsSource="{Binding Operations}"
+                                  DisplayMemberPath="UiName"
+                                  SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
+                                  Style="{StaticResource ComboBoxStyle}"
+                                  Grid.Column="1" Margin="0,0,10,0"/>
+                        <TextBox x:Name="keyTextBox" Header="Ключ"
+                                  Text="{Binding InputKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                 Visibility="{Binding KeyVisibility}"
+                                  Grid.Column="2" Margin="0"/>
+                    </Grid>
+
+                    <Button Content="Выполнить" Grid.Row="4" Command="{Binding CalculateCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+                </Grid>
+            </Border>
+
+            <!-- Output Panel -->
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Результат" Style="{StaticResource HeaderTextStyle}"/>
+                    <!-- Ошибки -->
+                    <Border Grid.Row="1"
+                            Background="{Binding ErrorType, Converter={StaticResource MessageTypeToBrushBackgroundConverter}}"
+                            BorderBrush="{Binding ErrorType, Converter={StaticResource MessageTypeToBrushBackgroundConverter}}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8"
+                            Margin="0,0,0,10"
+                            Visibility="{Binding ErrorVisibility}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SymbolIcon Symbol="{Binding ErrorType, Converter={StaticResource MessageTypeToSymbolConverter}}"
+                                        Foreground="{Binding ErrorType, Converter={StaticResource MessageTypeToBrushForegroundConverter}}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="{Binding ErrorType, Converter={StaticResource MessageTypeToBrushForegroundConverter}}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <TextBox Header="Результат обработки"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 IsReadOnly="True"
+                                 Text="{Binding OutputText}"/>
+                    </ScrollViewer>
+
+                    <!-- OutputShift блок -->
+                    <Grid Grid.Row="3" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Копировать результат" Command="{Binding CopyCommand}" Margin="0,10,8,0" Style="{StaticResource PrimaryButtonStyle}"/>
+                        <Button Grid.Column="1" Content="{Binding OutputKeyLabel}" Command="{Binding CopyKeyCommand}" Visibility="{Binding OutputKeyVisibility}" Style="{StaticResource PrimaryButtonStyle}"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
