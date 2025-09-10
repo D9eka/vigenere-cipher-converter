@@ -95,7 +95,7 @@ namespace Lab2.ViewModels
 
         public Visibility KeyVisibility { get; private set; } = Visibility.Visible;
 
-        public Visibility OutputKeyVisibility => !string.IsNullOrWhiteSpace(OutputText) && _selectedOperation.Type != OperationType.Decode ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility OutputKeyVisibility => !string.IsNullOrWhiteSpace(OutputText) && _selectedOperation.Type != OperationType.Decrypt ? Visibility.Visible : Visibility.Collapsed;
 
         public string ErrorMessage => _messages.Message;
         public MessageType ErrorType => _messages.Type;
@@ -167,7 +167,7 @@ namespace Lab2.ViewModels
                 }
 
                 var keyResult = _validator.Validate(InputKey.ToLower(), SelectedAlphabet);
-                if (!keyResult.IsValid && SelectedOperation.Type != OperationType.Hack)
+                if (!keyResult.IsValid && SelectedOperation.Type != OperationType.Cryptanalyze)
                 {
                     _messages.ShowError(inputResult.Message);
                     OutputText = string.Empty;
@@ -199,18 +199,18 @@ namespace Lab2.ViewModels
         {
             switch (_selectedOperation.Type)
             {
-                case OperationType.Decode:
-                    var result = VigenereCipher.Decode(InputText, InputKey, SelectedAlphabet);
+                case OperationType.Decrypt:
+                    var result = VigenereCipher.Decrypt(InputText, InputKey, SelectedAlphabet);
                     OutputKey = result.Item2;
                     return result.Item1;
 
-                case OperationType.Encode:
-                    result = VigenereCipher.Encode(InputText, InputKey, SelectedAlphabet);
+                case OperationType.Encrypt:
+                    result = VigenereCipher.Encrypt(InputText, InputKey, SelectedAlphabet);
                     OutputKey = result.Item2;
                     return result.Item1;
 
-                case OperationType.Hack:
-                    result = VigenereCipher.Hack(InputText, SelectedAlphabet);
+                case OperationType.Cryptanalyze:
+                    result = VigenereCipher.Cryptanalyze(InputText, SelectedAlphabet);
                     OutputKey = result.Item2;
                     return result.Item1;
 
@@ -253,7 +253,7 @@ namespace Lab2.ViewModels
 
         private void UpdateKeyVisibility()
         {
-            KeyVisibility = SelectedOperation.Type != OperationType.Hack
+            KeyVisibility = SelectedOperation.Type != OperationType.Cryptanalyze
                 ? Visibility.Visible
                 : Visibility.Collapsed;
             OnPropertyChanged(nameof(KeyVisibility));

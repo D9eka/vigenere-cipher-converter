@@ -9,218 +9,214 @@ namespace Lab2.Cipher
     public static class VigenereCipher
     {
         private const int DefaultMaxKeyLength = 12;
-        private const int TopDivisorCandidates = 6;
+        private const int TopDivisorCandidatesCount = 6;
 
-        public static (string Result, string Key) Encode(string text, string key, Alphabet alphabet)
+        public static (string Result, string Key) Encrypt(string plaintext, string key, Alphabet alphabet)
         {
-            string plain = Preprocess(text, alphabet);
-            string procKey = Preprocess(key, alphabet);
+            string normalizedText = NormalizeText(plaintext, alphabet);
+            string processedKey = NormalizeText(key, alphabet);
 
-            var sb = new StringBuilder(plain.Length);
-            int ki = 0;
-            for (int i = 0; i < plain.Length; i++)
-            {
-                int p = plain[i] - alphabet.StartCharIndex;
-                int s = procKey[ki] - alphabet.StartCharIndex;
-                int c = (p + s) % alphabet.MaxShift + alphabet.StartCharIndex;
-                sb.Append((char)c);
-                ki = (ki + 1) % procKey.Length;
-            }
+            Func<int, int, int> encryptOperation = (textPos, keyShift) => (textPos + keyShift) % alphabet.MaxShift;
+            string ciphertext = ProcessText(normalizedText, processedKey, alphabet, encryptOperation);
 
-            return (Group(sb.ToString()), procKey);
+            return (FormatInGroups(ciphertext), processedKey);
         }
 
-        public static (string Result, string Key) Decode(string cipher, string key, Alphabet alphabet)
+        public static (string Result, string Key) Decrypt(string ciphertext, string key, Alphabet alphabet)
         {
-            string procCipher = Preprocess(cipher, alphabet);
-            string procKey = Preprocess(key, alphabet);
+            string normalizedCiphertext = NormalizeText(ciphertext, alphabet);
+            string processedKey = NormalizeText(key, alphabet);
 
-            var sb = new StringBuilder(procCipher.Length);
-            int ki = 0;
-            for (int i = 0; i < procCipher.Length; i++)
-            {
-                int c = procCipher[i] - alphabet.StartCharIndex;
-                int s = procKey[ki] - alphabet.StartCharIndex;
-                int p = (c - s + alphabet.MaxShift) % alphabet.MaxShift + alphabet.StartCharIndex;
-                sb.Append((char)p);
-                ki = (ki + 1) % procKey.Length;
-            }
+            Func<int, int, int> decryptOperation = (textPos, keyShift) => (textPos - keyShift + alphabet.MaxShift) % alphabet.MaxShift;
+            string plaintext = ProcessText(normalizedCiphertext, processedKey, alphabet, decryptOperation);
 
-            return (Group(sb.ToString()), procKey);
+            return (FormatInGroups(plaintext), processedKey);
         }
 
-        public static (string Result, string Key) Hack(string cipher, Alphabet alphabet, int maxKeyLength = DefaultMaxKeyLength)
+        private static string ProcessText(string inputText, string key, Alphabet alphabet, Func<int, int, int> shiftOperation)
         {
-            string procCipher = Preprocess(cipher, alphabet);
-            var candidateLengths = GetCandidateKeyLengths(procCipher, alphabet, maxKeyLength);
+            var resultBuilder = new StringBuilder(inputText.Length);
+            int keyIndex = 0;
 
-            double bestScore = double.MaxValue;
-            string bestPlain = string.Empty;
+            for (int textIndex = 0; textIndex < inputText.Length; textIndex++)
+            {
+                int textPos = inputText[textIndex] - alphabet.StartCharIndex;
+                int keyShift = key[keyIndex] - alphabet.StartCharIndex;
+                int resultPos = shiftOperation(textPos, keyShift) + alphabet.StartCharIndex;
+                resultBuilder.Append((char)resultPos);
+                keyIndex = (keyIndex + 1) % key.Length;
+            }
+
+            return resultBuilder.ToString();
+        }
+
+        public static (string Result, string Key) Cryptanalyze(string ciphertext, Alphabet alphabet, int maxKeyLength = DefaultMaxKeyLength)
+        {
+            string normalizedCiphertext = NormalizeText(ciphertext, alphabet);
+            var candidateKeyLengths = FindPossibleKeyLengths(normalizedCiphertext, alphabet, maxKeyLength);
+
+            double bestDeviationScore = double.MaxValue;
+            string bestPlaintext = string.Empty;
             string bestKey = string.Empty;
 
-            foreach (int keyLen in candidateLengths.Distinct().Where(x => x >= 1 && x <= maxKeyLength))
+            foreach (int keyLength in candidateKeyLengths.Distinct().Where(length => length >= 1 && length <= maxKeyLength))
             {
-                var keyChars = new char[keyLen];
+                var keyCharacters = new char[keyLength];
 
-                // Для каждой позиции ключа находим оптимальный сдвиг
-                for (int pos = 0; pos < keyLen; pos++)
+                for (int keyPosition = 0; keyPosition < keyLength; keyPosition++)
                 {
-                    string subseq = string.Concat(procCipher.Where((ch, idx) => idx % keyLen == pos));
-                    int shift = FindBestShiftBySumSq(subseq, alphabet);
-                    keyChars[pos] = (char)(alphabet.StartCharIndex + shift);
+                    string subsequence = string.Concat(normalizedCiphertext.Where((ch, index) => index % keyLength == keyPosition));
+                    int bestShift = FindBestShiftUsingChiSquared(subsequence, alphabet);
+                    keyCharacters[keyPosition] = (char)(alphabet.StartCharIndex + bestShift);
                 }
 
-                string candidateKey = new string(keyChars);
-                string plain = Decode(procCipher, candidateKey, alphabet).Result.Replace(" ", "");
-                double score = ComputeSumSq(plain, alphabet);
+                string candidateKey = new string(keyCharacters);
+                string candidatePlaintext = Decrypt(normalizedCiphertext, candidateKey, alphabet).Result.Replace(" ", "");
+                double deviationScore = ComputeFrequencySquaredDeviation(candidatePlaintext, alphabet);
 
-                if (score < bestScore)
+                if (deviationScore < bestDeviationScore)
                 {
-                    bestScore = score;
-                    bestPlain = plain;
+                    bestDeviationScore = deviationScore;
+                    bestPlaintext = candidatePlaintext;
                     bestKey = candidateKey;
                 }
             }
 
-            return (Group(bestPlain), bestKey);
+            return (FormatInGroups(bestPlaintext), bestKey);
         }
 
-        private static string Preprocess(string input, Alphabet alphabet)
+        private static string NormalizeText(string input, Alphabet alphabet)
         {
-            string s = input.ToLower();
+            string lowercased = input.ToLower();
 
             if (alphabet.CharsToReplace != null && alphabet.CharsToReplace.Count > 0)
             {
-                foreach (var kv in alphabet.CharsToReplace)
-                    s = s.Replace(kv.Key.ToString(), kv.Value.ToString());
+                foreach (var replacement in alphabet.CharsToReplace)
+                    lowercased = lowercased.Replace(replacement.Key.ToString(), replacement.Value.ToString());
             }
 
-            var sb = new StringBuilder(s.Length);
-            for (int i = 0; i < s.Length; i++)
+            var filteredBuilder = new StringBuilder(lowercased.Length);
+            for (int i = 0; i < lowercased.Length; i++)
             {
-                char c = s[i];
-                if (c >= alphabet.StartCharIndex && c <= alphabet.EndCharIndex)
-                    sb.Append(c);
+                char currentChar = lowercased[i];
+                if (currentChar >= alphabet.StartCharIndex && currentChar <= alphabet.EndCharIndex)
+                    filteredBuilder.Append(currentChar);
             }
 
-            return sb.ToString();
+            return filteredBuilder.ToString();
         }
 
-        private static string Group(string s)
+        private static string FormatInGroups(string text)
         {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < s.Length; i++)
+            var groupedBuilder = new StringBuilder();
+            for (int i = 0; i < text.Length; i++)
             {
                 if (i > 0 && i % 5 == 0)
-                    sb.Append(' ');
-                sb.Append(s[i]);
+                    groupedBuilder.Append(' ');
+                groupedBuilder.Append(text[i]);
             }
-            return sb.ToString();
+            return groupedBuilder.ToString();
         }
 
-        private static IEnumerable<int> GetCandidateKeyLengths(string text, Alphabet alphabet, int maxKeyLength)
+        private static IEnumerable<int> FindPossibleKeyLengths(string text, Alphabet alphabet, int maxKeyLength)
         {
-            var divisorsCount = new Dictionary<int, int>();
+            var divisorFrequencies = new Dictionary<int, int>();
 
-            // Метод Казиского — ищем повторяющиеся шаблоны длины 3..5
-            for (int patternLen = 3; patternLen <= 5; patternLen++)
+            for (int patternLength = 3; patternLength <= 5; patternLength++)
             {
-                for (int i = 0; i <= text.Length - patternLen; i++)
+                for (int startIndex = 0; startIndex <= text.Length - patternLength; startIndex++)
                 {
-                    string pattern = text.Substring(i, patternLen);
-                    int j = text.IndexOf(pattern, i + patternLen, StringComparison.Ordinal);
-                    while (j >= 0)
+                    string pattern = text.Substring(startIndex, patternLength);
+                    int nextIndex = text.IndexOf(pattern, startIndex + patternLength, StringComparison.Ordinal);
+                    while (nextIndex >= 0)
                     {
-                        int dist = j - i;
-                        foreach (int div in GetDivisors(dist))
+                        int distance = nextIndex - startIndex;
+                        foreach (int divisor in FindDivisors(distance))
                         {
-                            if (div >= 2 && div <= maxKeyLength)
+                            if (divisor >= 2 && divisor <= maxKeyLength)
                             {
-                                if (!divisorsCount.ContainsKey(div)) divisorsCount[div] = 0;
-                                divisorsCount[div]++;
+                                if (!divisorFrequencies.ContainsKey(divisor)) divisorFrequencies[divisor] = 0;
+                                divisorFrequencies[divisor]++;
                             }
                         }
-                        j = text.IndexOf(pattern, j + patternLen, StringComparison.Ordinal);
+                        nextIndex = text.IndexOf(pattern, nextIndex + patternLength, StringComparison.Ordinal);
                     }
                 }
             }
 
-            var topDivisors = divisorsCount
+            var topDivisors = divisorFrequencies
                 .OrderByDescending(kv => kv.Value)
-                .Take(TopDivisorCandidates)
+                .Take(TopDivisorCandidatesCount)
                 .Select(kv => kv.Key)
                 .ToList();
 
-            var candidates = new List<int>();
-            candidates.AddRange(topDivisors);
+            var candidates = new List<int>(topDivisors);
 
-            // Расширяем окрестности ±2 для каждого кандидата
-            foreach (var d in topDivisors)
+            foreach (var divisor in topDivisors)
             {
                 for (int delta = -2; delta <= 2; delta++)
                 {
-                    int v = d + delta;
-                    if (v >= 1 && v <= maxKeyLength && !candidates.Contains(v))
-                        candidates.Add(v);
+                    int candidate = divisor + delta;
+                    if (candidate >= 1 && candidate <= maxKeyLength && !candidates.Contains(candidate))
+                        candidates.Add(candidate);
                 }
             }
 
-            // Если кандидатов не найдено — используем запасной набор
             if (!candidates.Any())
             {
-                for (int i = 2; i <= Math.Min(12, maxKeyLength); i++)
-                    candidates.Add(i);
+                for (int length = 2; length <= Math.Min(12, maxKeyLength); length++)
+                    candidates.Add(length);
             }
 
-            return candidates.Distinct().OrderBy(x => x);
+            return candidates.Distinct().OrderBy(length => length);
         }
 
-        private static IEnumerable<int> GetDivisors(int n)
+        private static IEnumerable<int> FindDivisors(int number)
         {
-            var res = new List<int>();
-            for (int d = 1; d * d <= n; d++)
+            var divisors = new List<int>();
+            for (int divisor = 1; divisor * divisor <= number; divisor++)
             {
-                if (n % d == 0)
+                if (number % divisor == 0)
                 {
-                    res.Add(d);
-                    if (d != n / d) res.Add(n / d);
+                    divisors.Add(divisor);
+                    if (divisor != number / divisor) divisors.Add(number / divisor);
                 }
             }
-            return res;
+            return divisors;
         }
 
-        private static int FindBestShiftBySumSq(string subseq, Alphabet alphabet)
+        private static int FindBestShiftUsingChiSquared(string subsequence, Alphabet alphabet)
         {
-            int L = subseq.Length;
-            if (L == 0) return 0;
+            int length = subsequence.Length;
+            if (length == 0) return 0;
 
-            double bestScore = double.MaxValue;
+            double bestChiSquaredScore = double.MaxValue;
             int bestShift = 0;
-            var langFreq = alphabet.Frequencies;
+            var languageFrequencies = alphabet.Frequencies;
 
             for (int shift = 0; shift < alphabet.MaxShift; shift++)
             {
-                var counts = new Dictionary<char, int>();
-                foreach (char c in subseq)
+                var characterCounts = new Dictionary<char, int>();
+                foreach (char cipherChar in subsequence)
                 {
-                    int dec = (c - alphabet.StartCharIndex - shift + alphabet.MaxShift) % alphabet.MaxShift + alphabet.StartCharIndex;
-                    char ch = (char)dec;
-                    if (!counts.ContainsKey(ch)) counts[ch] = 0;
-                    counts[ch]++;
+                    int decodedPos = (cipherChar - alphabet.StartCharIndex - shift + alphabet.MaxShift) % alphabet.MaxShift + alphabet.StartCharIndex;
+                    char decodedChar = (char)decodedPos;
+                    if (!characterCounts.ContainsKey(decodedChar)) characterCounts[decodedChar] = 0;
+                    characterCounts[decodedChar]++;
                 }
 
-                double chi2 = 0.0;
-                foreach (var kv in langFreq)
+                double chiSquared = 0.0;
+                foreach (var freqPair in languageFrequencies)
                 {
-                    double expectedCount = kv.Value * L;
-                    double observedCount = counts.ContainsKey(kv.Key) ? counts[kv.Key] : 0;
+                    double expectedCount = freqPair.Value * length;
+                    double observedCount = characterCounts.ContainsKey(freqPair.Key) ? characterCounts[freqPair.Key] : 0;
                     if (expectedCount > 0)
-                        chi2 += (observedCount - expectedCount) * (observedCount - expectedCount) / expectedCount;
+                        chiSquared += (observedCount - expectedCount) * (observedCount - expectedCount) / expectedCount;
                 }
 
-                if (chi2 < bestScore)
+                if (chiSquared < bestChiSquaredScore)
                 {
-                    bestScore = chi2;
+                    bestChiSquaredScore = chiSquared;
                     bestShift = shift;
                 }
             }
@@ -228,37 +224,37 @@ namespace Lab2.Cipher
             return bestShift;
         }
 
-        private static double ComputeSumSq(string text, Alphabet alphabet)
+        private static double ComputeFrequencySquaredDeviation(string text, Alphabet alphabet)
         {
-            Dictionary<char, int> counts = new();
-            int total = 0;
+            var characterCounts = new Dictionary<char, int>();
+            int totalCharacters = 0;
 
-            foreach (char c in text)
+            foreach (char currentChar in text)
             {
-                if (alphabet.Frequencies.ContainsKey(c))
+                if (alphabet.Frequencies.ContainsKey(currentChar))
                 {
-                    if (!counts.ContainsKey(c)) counts[c] = 0;
-                    counts[c]++;
-                    total++;
+                    if (!characterCounts.ContainsKey(currentChar)) characterCounts[currentChar] = 0;
+                    characterCounts[currentChar]++;
+                    totalCharacters++;
                 }
             }
 
-            Dictionary<char, double> obs = new();
-            foreach (var kv in alphabet.Frequencies)
+            var observedFrequencies = new Dictionary<char, double>();
+            foreach (var freqPair in alphabet.Frequencies)
             {
-                char ch = kv.Key;
-                obs[ch] = counts.ContainsKey(ch) ? (double)counts[ch] / total : 0.0;
+                char ch = freqPair.Key;
+                observedFrequencies[ch] = characterCounts.ContainsKey(ch) ? (double)characterCounts[ch] / totalCharacters : 0.0;
             }
 
-            double sumSq = 0.0;
-            foreach (var kv in alphabet.Frequencies)
+            double squaredDeviationSum = 0.0;
+            foreach (var freqPair in alphabet.Frequencies)
             {
-                double exp = kv.Value;
-                double ob = obs[kv.Key];
-                sumSq += (ob - exp) * (ob - exp);
+                double expectedFreq = freqPair.Value;
+                double observedFreq = observedFrequencies[freqPair.Key];
+                squaredDeviationSum += (observedFreq - expectedFreq) * (observedFreq - expectedFreq);
             }
 
-            return sumSq;
+            return squaredDeviationSum;
         }
     }
 }

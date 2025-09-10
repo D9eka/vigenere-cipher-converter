@@ -2,8 +2,8 @@
 {
     public enum OperationType
     {
-        Decode,
-        Encode,
-        Hack
+        Decrypt,
+        Encrypt,
+        Cryptanalyze
     }
 }

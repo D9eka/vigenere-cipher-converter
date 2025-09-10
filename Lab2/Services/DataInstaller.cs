@@ -20,9 +20,9 @@ namespace Lab2.Services
 
         public List<Operation> GetOperations() => new()
         {
-            new Operation(OperationType.Encode, "Зашифровать"),
-            new Operation(OperationType.Decode, "Расшифровать"),
-            new Operation(OperationType.Hack, "Взломать")
+            new Operation(OperationType.Encrypt, "Зашифровать"),
+            new Operation(OperationType.Decrypt, "Расшифровать"),
+            new Operation(OperationType.Cryptanalyze, "Взломать")
         };
     }
 }
