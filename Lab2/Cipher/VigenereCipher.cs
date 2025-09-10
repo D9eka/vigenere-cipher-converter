@@ -8,10 +8,8 @@ namespace Lab2.Cipher
 {
     public static class VigenereCipher
     {
-        private const int DefaultMaxKeyLength = 40;
+        private const int DefaultMaxKeyLength = 12;
         private const int TopDivisorCandidates = 6;
-
-        #region Public API
 
         public static (string Result, string Key) Encode(string text, string key, Alphabet alphabet)
         {
@@ -68,13 +66,13 @@ namespace Lab2.Cipher
                 for (int pos = 0; pos < keyLen; pos++)
                 {
                     string subseq = string.Concat(procCipher.Where((ch, idx) => idx % keyLen == pos));
-                    int shift = FindBestShiftByChiSquared(subseq, alphabet);
+                    int shift = FindBestShiftBySumSq(subseq, alphabet);
                     keyChars[pos] = (char)(alphabet.StartCharIndex + shift);
                 }
 
                 string candidateKey = new string(keyChars);
                 string plain = Decode(procCipher, candidateKey, alphabet).Result.Replace(" ", "");
-                double score = ComputeChiSquareForText(plain, alphabet);
+                double score = ComputeSumSq(plain, alphabet);
 
                 if (score < bestScore)
                 {
@@ -87,14 +85,9 @@ namespace Lab2.Cipher
             return (Group(bestPlain), bestKey);
         }
 
-        #endregion
-
-        #region Preprocess & Helpers
-
         private static string Preprocess(string input, Alphabet alphabet)
         {
-            if (input == null) return string.Empty;
-            string s = input.ToLowerInvariant();
+            string s = input.ToLower();
 
             if (alphabet.CharsToReplace != null && alphabet.CharsToReplace.Count > 0)
             {
@@ -125,15 +118,11 @@ namespace Lab2.Cipher
             return sb.ToString();
         }
 
-        #endregion
-
-        #region Kasiski / Friedman
-
         private static IEnumerable<int> GetCandidateKeyLengths(string text, Alphabet alphabet, int maxKeyLength)
         {
             var divisorsCount = new Dictionary<int, int>();
 
-            // Метод Казиского
+            // Метод Казиского — ищем повторяющиеся шаблоны длины 3..5
             for (int patternLen = 3; patternLen <= 5; patternLen++)
             {
                 for (int i = 0; i <= text.Length - patternLen; i++)
@@ -162,26 +151,11 @@ namespace Lab2.Cipher
                 .Select(kv => kv.Key)
                 .ToList();
 
-            // Метод Фридмана
-            double ic = ComputeIndexOfCoincidence(text);
-            double langIC = 0.055; // Средний IC для русского языка
-            double randIC = 1.0 / alphabet.MaxShift;
-            int friedmanEstimate = 3;
-
-            if (Math.Abs(ic - randIC) > 1e-9)
-            {
-                double est = (langIC - randIC) / (ic - randIC);
-                if (est > 0 && !double.IsNaN(est) && !double.IsInfinity(est))
-                    friedmanEstimate = Math.Max(1, (int)Math.Round(est));
-            }
-
             var candidates = new List<int>();
             candidates.AddRange(topDivisors);
 
-            if (!candidates.Contains(friedmanEstimate) && friedmanEstimate >= 1 && friedmanEstimate <= maxKeyLength)
-                candidates.Add(friedmanEstimate);
-
-            foreach (var d in topDivisors.Concat(new[] { friedmanEstimate }))
+            // Расширяем окрестности ±2 для каждого кандидата
+            foreach (var d in topDivisors)
             {
                 for (int delta = -2; delta <= 2; delta++)
                 {
@@ -191,6 +165,7 @@ namespace Lab2.Cipher
                 }
             }
 
+            // Если кандидатов не найдено — используем запасной набор
             if (!candidates.Any())
             {
                 for (int i = 2; i <= Math.Min(12, maxKeyLength); i++)
@@ -214,28 +189,7 @@ namespace Lab2.Cipher
             return res;
         }
 
-        private static double ComputeIndexOfCoincidence(string text)
-        {
-            int N = text.Length;
-            if (N <= 1) return 0.0;
-            var counts = new Dictionary<char, int>();
-            foreach (char c in text)
-            {
-                if (!counts.ContainsKey(c)) counts[c] = 0;
-                counts[c]++;
-            }
-            double sum = 0;
-            foreach (var kv in counts)
-                sum += kv.Value * (kv.Value - 1);
-
-            return sum / (N * (N - 1));
-        }
-
-        #endregion
-
-        #region χ²
-
-        private static int FindBestShiftByChiSquared(string subseq, Alphabet alphabet)
+        private static int FindBestShiftBySumSq(string subseq, Alphabet alphabet)
         {
             int L = subseq.Length;
             if (L == 0) return 0;
@@ -274,30 +228,37 @@ namespace Lab2.Cipher
             return bestShift;
         }
 
-        private static double ComputeChiSquareForText(string text, Alphabet alphabet)
+        private static double ComputeSumSq(string text, Alphabet alphabet)
         {
-            int N = text.Length;
-            if (N == 0) return double.MaxValue;
+            Dictionary<char, int> counts = new();
+            int total = 0;
 
-            var counts = new Dictionary<char, int>();
             foreach (char c in text)
             {
-                if (!counts.ContainsKey(c)) counts[c] = 0;
-                counts[c]++;
+                if (alphabet.Frequencies.ContainsKey(c))
+                {
+                    if (!counts.ContainsKey(c)) counts[c] = 0;
+                    counts[c]++;
+                    total++;
+                }
             }
 
-            double chi2 = 0.0;
+            Dictionary<char, double> obs = new();
             foreach (var kv in alphabet.Frequencies)
             {
-                double expectedCount = kv.Value * N;
-                double observedCount = counts.ContainsKey(kv.Key) ? counts[kv.Key] : 0;
-                if (expectedCount > 0)
-                    chi2 += (observedCount - expectedCount) * (observedCount - expectedCount) / expectedCount;
+                char ch = kv.Key;
+                obs[ch] = counts.ContainsKey(ch) ? (double)counts[ch] / total : 0.0;
             }
 
-            return chi2;
-        }
+            double sumSq = 0.0;
+            foreach (var kv in alphabet.Frequencies)
+            {
+                double exp = kv.Value;
+                double ob = obs[kv.Key];
+                sumSq += (ob - exp) * (ob - exp);
+            }
 
-        #endregion
+            return sumSq;
+        }
     }
 }
