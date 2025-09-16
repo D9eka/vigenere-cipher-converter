@@ -26,7 +26,7 @@ namespace Lab2.Models.Alphabets
 
         private Dictionary<char, double> InitializeFrequencies(int startCharIndex, int endCharIndex, double[] frequencies)
         {
-            var freqDict = new Dictionary<char, double>();
+            Dictionary<char, double> freqDict = new Dictionary<char, double>();
             int charCount = endCharIndex - startCharIndex + 1;
 
             if (frequencies.Length != charCount)

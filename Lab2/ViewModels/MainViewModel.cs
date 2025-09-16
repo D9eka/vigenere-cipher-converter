@@ -219,7 +219,7 @@ namespace Lab2.ViewModels
             switch (_selectedOperation.Type)
             {
                 case OperationType.Decrypt:
-                    var result = VigenereCipher.Decrypt(InputText, InputKey, SelectedAlphabet);
+                    (string Result, string Key) result = VigenereCipher.Decrypt(InputText, InputKey, SelectedAlphabet);
                     OutputKey = result.Item2;
                     return result.Item1;
 

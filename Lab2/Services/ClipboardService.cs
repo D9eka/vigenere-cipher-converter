@@ -13,7 +13,7 @@ namespace Lab2.Services
     {
         public string Paste()
         {
-            var dataPackage = Clipboard.GetContent();
+            DataPackageView dataPackage = Clipboard.GetContent();
             if (dataPackage.Contains(StandardDataFormats.Text))
             {
                 return dataPackage.GetTextAsync().GetAwaiter().GetResult();
@@ -23,7 +23,7 @@ namespace Lab2.Services
 
         public void Copy(string text)
         {
-            var dataPackage = new DataPackage();
+            DataPackage dataPackage = new DataPackage();
             dataPackage.SetText(text);
             Clipboard.SetContent(dataPackage);
         }
