@@ -1,30 +1,29 @@
-﻿using Lab2.Models.Alphabets;
+﻿using Lab2.Core.Models.Alphabets;
 using System.Linq;
 
-namespace Lab2.Services.Input
+namespace Lab2.Services.Input;
+
+public class InputValidator
 {
-    public class InputValidator
+    public InputValidationResult Validate(string input, Alphabet alphabet)
     {
-        public InputValidationResult Validate(string input, Alphabet alphabet)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                return InputValidationResult.Error("Введите текст для обработки.");
+        if (string.IsNullOrWhiteSpace(input))
+            return InputValidationResult.Error("Введите текст для обработки.");
 
-            int validChars = input.Count(c =>
-                c >= (char)alphabet.StartCharIndex && c <= (char)alphabet.EndCharIndex
-                || alphabet.CharsToReplace.ContainsKey(c));
+        int validChars = input.Count(c =>
+            c >= (char)alphabet.StartCharIndex && c <= (char)alphabet.EndCharIndex
+            || alphabet.CharsToReplace.ContainsKey(c));
 
-            if (validChars == 0)
-                return InputValidationResult.Error("Все символы не соответствуют выбранному алфавиту");
+        if (validChars == 0)
+            return InputValidationResult.Error("Все символы не соответствуют выбранному алфавиту");
 
-            int validCharsWithSpace = input.Count(c =>
-                c >= (char)alphabet.StartCharIndex && c <= (char)alphabet.EndCharIndex
-                || alphabet.CharsToReplace.ContainsKey(c) || c == ' ');
+        int validCharsWithSpace = input.Count(c =>
+            c >= (char)alphabet.StartCharIndex && c <= (char)alphabet.EndCharIndex
+            || alphabet.CharsToReplace.ContainsKey(c) || c == ' ');
 
-            if (validCharsWithSpace < validChars || validChars < input.Length)
-                return InputValidationResult.Warning("Некоторые символы не соответствуют алфавиту и будут пропущены");
+        if (validCharsWithSpace < validChars || validChars < input.Length)
+            return InputValidationResult.Warning("Некоторые символы не соответствуют алфавиту и будут пропущены");
 
-            return InputValidationResult.Success();
-        }
+        return InputValidationResult.Success();
     }
 }

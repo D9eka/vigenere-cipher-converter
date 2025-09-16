@@ -1,9 +1,8 @@
-﻿namespace Lab2.Services.Message
+﻿namespace Lab2.Services.Message;
+
+public enum MessageType
 {
-    public enum MessageType
-    {
-        None,
-        Warning,
-        Error
-    }
+    None,
+    Warning,
+    Error
 }

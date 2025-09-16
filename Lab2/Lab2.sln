@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab2", "Lab2.csproj", "{C382A23C-ECEE-4F9E-B077-91276C7E62F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab2.Core", "..\Lab2.Core\Lab2.Core.csproj", "{63C64B65-4232-4736-ABB9-0C2BC98D14E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,18 @@ Global
 		{C382A23C-ECEE-4F9E-B077-91276C7E62F1}.Release|x86.ActiveCfg = Release|x86
 		{C382A23C-ECEE-4F9E-B077-91276C7E62F1}.Release|x86.Build.0 = Release|x86
 		{C382A23C-ECEE-4F9E-B077-91276C7E62F1}.Release|x86.Deploy.0 = Release|x86
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|x64.Build.0 = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Debug|x86.Build.0 = Debug|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|ARM64.Build.0 = Release|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|x64.ActiveCfg = Release|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|x64.Build.0 = Release|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|x86.ActiveCfg = Release|Any CPU
+		{63C64B65-4232-4736-ABB9-0C2BC98D14E0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

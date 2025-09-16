@@ -1,14 +1,13 @@
 using Lab2.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Lab2
+namespace Lab2;
+
+public sealed partial class MainPage : Page
 {
-    public sealed partial class MainPage : Page
+    public MainPage()
     {
-        public MainPage()
-        {
-            this.InitializeComponent();
-            this.DataContext = new MainViewModel(this);
-        }
+        this.InitializeComponent();
+        this.DataContext = new MainViewModel(this);
     }
 }
