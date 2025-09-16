@@ -1,8 +1,8 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Lab2.Services.Message;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System;
-using Lab2.Services.Message;
 
 namespace Lab2.Converters;
 

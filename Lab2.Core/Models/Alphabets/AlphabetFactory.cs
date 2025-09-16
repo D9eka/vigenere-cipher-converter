@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Lab2.Core.Models.Alphabets;
+﻿namespace Lab2.Core.Models.Alphabets;
 
 public static class AlphabetFactory
 {

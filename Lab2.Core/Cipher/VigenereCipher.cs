@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Lab2.Core.Models.Alphabets;
 using System.Text;
-using Lab2.Core.Models.Alphabets;
 
 namespace Lab2.Core.Cipher;
 
@@ -176,7 +173,7 @@ public static class VigenereCipher
                 if (divisor != number / divisor)
                 {
                     divisors.Add(number / divisor);
-                }    
+                }
             }
         }
         return divisors;
