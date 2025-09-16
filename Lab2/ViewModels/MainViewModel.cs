@@ -157,26 +157,27 @@ namespace Lab2.ViewModels
         {
             try
             {
-                var inputResult = _validator.Validate(InputText.ToLower(), SelectedAlphabet);
+                InputValidationResult inputResult = _validator.Validate(InputText.ToLower(), SelectedAlphabet);
 
                 if (!inputResult.IsValid)
                 {
-                    _messages.ShowError(inputResult.Message);
+                    _messages.ShowError($"Текст для обработки: {inputResult.Message}");
                     OutputText = string.Empty;
                     OutputKey = string.Empty;
+                    return;
                 }
 
-                var keyResult = _validator.Validate(InputKey.ToLower(), SelectedAlphabet);
+                InputValidationResult keyResult = _validator.Validate(InputKey.ToLower(), SelectedAlphabet);
                 if (!keyResult.IsValid && SelectedOperation.Type != OperationType.Cryptanalyze)
                 {
-                    _messages.ShowError(inputResult.Message);
+                    _messages.ShowError($"Ключ: {keyResult.Message}");
                     OutputText = string.Empty;
                     OutputKey = string.Empty;
                 }
                 else
                 {
                     OutputText = ApplyCipher();
-                    string warningMessage = $"{inputResult.Message}\n{inputResult.Message}";
+                    string warningMessage = GenerateWarningMessage(inputResult, keyResult);
                     if (!string.IsNullOrWhiteSpace(warningMessage))
                         _messages.ShowWarning(inputResult.Message);
                     else
@@ -193,6 +194,24 @@ namespace Lab2.ViewModels
             {
                 RefreshErrorBindings();
             }
+        }
+
+        private string GenerateWarningMessage(InputValidationResult inputResult, InputValidationResult keyResult)
+        {
+            if (SelectedOperation.Type != OperationType.Cryptanalyze &&
+                inputResult.Type == MessageType.Warning && keyResult.Type == MessageType.Warning)
+            {
+                return $"Текст для обработки и ключ: {inputResult.Message}";
+            }
+            if (!inputResult.IsValid)
+            {
+                return $"Текст для обработки: {inputResult.Message}";
+            }
+            if (!keyResult.IsValid && SelectedOperation.Type != OperationType.Cryptanalyze)
+            {
+                return $"Ключ: {keyResult.Message}";
+            }
+            return string.Empty;
         }
 
         private string ApplyCipher()
