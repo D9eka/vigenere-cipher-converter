@@ -9,7 +9,10 @@ namespace Lab2.Cipher
     public static class VigenereCipher
     {
         private const int DefaultMaxKeyLength = 12;
-        private const int TopDivisorCandidatesCount = 6;
+        private const int TopDivisorCandidatesCount = 3;
+
+        private const int MinDivisorDelta = 0;
+        private const int MaxDivisorDelta = 0;
 
         public static (string Result, string Key) Encrypt(string plaintext, string key, Alphabet alphabet)
         {
@@ -35,7 +38,7 @@ namespace Lab2.Cipher
 
         private static string ProcessText(string inputText, string key, Alphabet alphabet, Func<int, int, int> shiftOperation)
         {
-            var resultBuilder = new StringBuilder(inputText.Length);
+            StringBuilder resultBuilder = new StringBuilder(inputText.Length);
             int keyIndex = 0;
 
             for (int textIndex = 0; textIndex < inputText.Length; textIndex++)
@@ -53,15 +56,15 @@ namespace Lab2.Cipher
         public static (string Result, string Key) Cryptanalyze(string ciphertext, Alphabet alphabet, int maxKeyLength = DefaultMaxKeyLength)
         {
             string normalizedCiphertext = NormalizeText(ciphertext, alphabet);
-            var candidateKeyLengths = FindPossibleKeyLengths(normalizedCiphertext, alphabet, maxKeyLength);
+            IEnumerable<int> candidateKeyLengths = FindPossibleKeyLengths(normalizedCiphertext, alphabet, maxKeyLength);
 
             double bestDeviationScore = double.MaxValue;
             string bestPlaintext = string.Empty;
             string bestKey = string.Empty;
 
-            foreach (int keyLength in candidateKeyLengths.Distinct().Where(length => length >= 1 && length <= maxKeyLength))
+            foreach (int keyLength in candidateKeyLengths)
             {
-                var keyCharacters = new char[keyLength];
+                char[] keyCharacters = new char[keyLength];
 
                 for (int keyPosition = 0; keyPosition < keyLength; keyPosition++)
                 {
@@ -91,11 +94,11 @@ namespace Lab2.Cipher
 
             if (alphabet.CharsToReplace != null && alphabet.CharsToReplace.Count > 0)
             {
-                foreach (var replacement in alphabet.CharsToReplace)
+                foreach (KeyValuePair<char, char> replacement in alphabet.CharsToReplace)
                     lowercased = lowercased.Replace(replacement.Key.ToString(), replacement.Value.ToString());
             }
 
-            var filteredBuilder = new StringBuilder(lowercased.Length);
+            StringBuilder filteredBuilder = new StringBuilder(lowercased.Length);
             for (int i = 0; i < lowercased.Length; i++)
             {
                 char currentChar = lowercased[i];
@@ -106,21 +109,9 @@ namespace Lab2.Cipher
             return filteredBuilder.ToString();
         }
 
-        private static string FormatInGroups(string text)
-        {
-            var groupedBuilder = new StringBuilder();
-            for (int i = 0; i < text.Length; i++)
-            {
-                if (i > 0 && i % 5 == 0)
-                    groupedBuilder.Append(' ');
-                groupedBuilder.Append(text[i]);
-            }
-            return groupedBuilder.ToString();
-        }
-
         private static IEnumerable<int> FindPossibleKeyLengths(string text, Alphabet alphabet, int maxKeyLength)
         {
-            var divisorFrequencies = new Dictionary<int, int>();
+            Dictionary<int, int> divisorFrequencies = new Dictionary<int, int>();
 
             for (int patternLength = 3; patternLength <= 5; patternLength++)
             {
@@ -135,7 +126,10 @@ namespace Lab2.Cipher
                         {
                             if (divisor >= 2 && divisor <= maxKeyLength)
                             {
-                                if (!divisorFrequencies.ContainsKey(divisor)) divisorFrequencies[divisor] = 0;
+                                if (!divisorFrequencies.ContainsKey(divisor))
+                                {
+                                    divisorFrequencies[divisor] = 0;
+                                }
                                 divisorFrequencies[divisor]++;
                             }
                         }
@@ -144,17 +138,17 @@ namespace Lab2.Cipher
                 }
             }
 
-            var topDivisors = divisorFrequencies
+            List<int> topDivisors = divisorFrequencies
                 .OrderByDescending(kv => kv.Value)
                 .Take(TopDivisorCandidatesCount)
                 .Select(kv => kv.Key)
                 .ToList();
 
-            var candidates = new List<int>(topDivisors);
+            List<int> candidates = new List<int>(topDivisors);
 
-            foreach (var divisor in topDivisors)
+            foreach (int divisor in topDivisors)
             {
-                for (int delta = -2; delta <= 2; delta++)
+                for (int delta = MinDivisorDelta; delta <= MaxDivisorDelta; delta++)
                 {
                     int candidate = divisor + delta;
                     if (candidate >= 1 && candidate <= maxKeyLength && !candidates.Contains(candidate))
@@ -164,22 +158,25 @@ namespace Lab2.Cipher
 
             if (!candidates.Any())
             {
-                for (int length = 2; length <= Math.Min(12, maxKeyLength); length++)
+                for (int length = 2; length <= maxKeyLength; length++)
                     candidates.Add(length);
             }
 
-            return candidates.Distinct().OrderBy(length => length);
+            return candidates.OrderBy(length => length);
         }
 
         private static IEnumerable<int> FindDivisors(int number)
         {
-            var divisors = new List<int>();
+            List<int> divisors = new List<int>();
             for (int divisor = 1; divisor * divisor <= number; divisor++)
             {
                 if (number % divisor == 0)
                 {
                     divisors.Add(divisor);
-                    if (divisor != number / divisor) divisors.Add(number / divisor);
+                    if (divisor != number / divisor)
+                    {
+                        divisors.Add(number / divisor);
+                    }    
                 }
             }
             return divisors;
@@ -192,11 +189,11 @@ namespace Lab2.Cipher
 
             double bestChiSquaredScore = double.MaxValue;
             int bestShift = 0;
-            var languageFrequencies = alphabet.Frequencies;
+            Dictionary<char, double> languageFrequencies = alphabet.Frequencies;
 
             for (int shift = 0; shift < alphabet.MaxShift; shift++)
             {
-                var characterCounts = new Dictionary<char, int>();
+                Dictionary<char, int> characterCounts = new Dictionary<char, int>();
                 foreach (char cipherChar in subsequence)
                 {
                     int decodedPos = (cipherChar - alphabet.StartCharIndex - shift + alphabet.MaxShift) % alphabet.MaxShift + alphabet.StartCharIndex;
@@ -206,12 +203,12 @@ namespace Lab2.Cipher
                 }
 
                 double chiSquared = 0.0;
-                foreach (var freqPair in languageFrequencies)
+                foreach (KeyValuePair<char, double> freqPair in languageFrequencies)
                 {
                     double expectedCount = freqPair.Value * length;
                     double observedCount = characterCounts.ContainsKey(freqPair.Key) ? characterCounts[freqPair.Key] : 0;
                     if (expectedCount > 0)
-                        chiSquared += (observedCount - expectedCount) * (observedCount - expectedCount) / expectedCount;
+                        chiSquared += Math.Pow(observedCount - expectedCount, 2) / expectedCount;
                 }
 
                 if (chiSquared < bestChiSquaredScore)
@@ -226,7 +223,7 @@ namespace Lab2.Cipher
 
         private static double ComputeFrequencySquaredDeviation(string text, Alphabet alphabet)
         {
-            var characterCounts = new Dictionary<char, int>();
+            Dictionary<char, int> characterCounts = new Dictionary<char, int>();
             int totalCharacters = 0;
 
             foreach (char currentChar in text)
@@ -239,15 +236,15 @@ namespace Lab2.Cipher
                 }
             }
 
-            var observedFrequencies = new Dictionary<char, double>();
-            foreach (var freqPair in alphabet.Frequencies)
+            Dictionary<char, double> observedFrequencies = new Dictionary<char, double>();
+            foreach (KeyValuePair<char, double> freqPair in alphabet.Frequencies)
             {
                 char ch = freqPair.Key;
                 observedFrequencies[ch] = characterCounts.ContainsKey(ch) ? (double)characterCounts[ch] / totalCharacters : 0.0;
             }
 
             double squaredDeviationSum = 0.0;
-            foreach (var freqPair in alphabet.Frequencies)
+            foreach (KeyValuePair<char, double> freqPair in alphabet.Frequencies)
             {
                 double expectedFreq = freqPair.Value;
                 double observedFreq = observedFrequencies[freqPair.Key];
@@ -255,6 +252,18 @@ namespace Lab2.Cipher
             }
 
             return squaredDeviationSum;
+        }
+
+        private static string FormatInGroups(string text)
+        {
+            StringBuilder groupedBuilder = new StringBuilder();
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (i > 0 && i % 5 == 0)
+                    groupedBuilder.Append(' ');
+                groupedBuilder.Append(text[i]);
+            }
+            return groupedBuilder.ToString();
         }
     }
 }
