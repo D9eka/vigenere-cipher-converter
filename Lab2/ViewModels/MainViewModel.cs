@@ -167,7 +167,7 @@ public class MainViewModel : ViewModelBase
                 return;
             }
 
-            InputValidationResult keyResult = _validator.Validate(InputKey.ToLower(), SelectedAlphabet);
+            InputValidationResult keyResult = _validator.Validate(InputKey.ToLower(), SelectedAlphabet, false);
             if (!keyResult.IsValid && SelectedOperation.Type != OperationType.Cryptanalyze)
             {
                 _messages.ShowError($"Ключ: {keyResult.Message}");
