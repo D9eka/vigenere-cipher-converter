@@ -6,7 +6,7 @@ namespace Lab2.Services.Input;
 
 public class InputValidator
 {
-    private static readonly char[] _validChars = new char[] { ' ', '\n', '\r' };
+    private static readonly char[] _validChars = new char[] { ' ', '\n', '\r', '!', ',', '.', '-', ':', '?', ';' };
 
     public InputValidationResult Validate(string input, Alphabet alphabet, bool spaceIsValidChar = true)
     {
